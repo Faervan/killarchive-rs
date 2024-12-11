@@ -1,0 +1,96 @@
+#!/bin/sh
+
+send() {
+  local command="$1"
+  echo "$command" | nc -N -U /run/user/1000/killarchive
+}
+
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+      echo "This action requires root permissions. Please run with sudo."
+      exit 1
+    fi
+}
+
+TARGET="/usr/local/bin/$(basename "$0")"
+
+SRC="/home/stk/untitled/rust/projects/killarchive"
+RELEASE="$SRC/target/release/killarchive"
+
+LOG="/var/log/killarchive/killarchive.log"
+
+case "$1" in
+    "self-setup")
+        echo "Installing myself to /usr/local/bin..."
+        if [ "$(realpath "$0")" = "$TARGET" ]; then
+            echo "The script is already in $TARGET."
+            exit 0
+        fi
+        check_root
+        echo "Moving the script to $TARGET..."
+        cp "$0" "$TARGET"
+        chmod +x "$TARGET"
+        echo "You can run me as \`$(basename "$0")\`"
+        ;;
+    "self-remove")
+        if [ "$(realpath "$0")" = "$TARGET" ]; then
+            echo "Removing myself from $TARGET..."
+            check_root
+            rm "$TARGET"
+        else
+            echo "This script is not installed in $TARGET"
+            exit 1
+        fi
+        ;;
+    start)
+        pid=$(pgrep -x "killarchive")
+        if [ -n "$pid" ]; then
+            echo "killarchive is already running with PID $pid"
+            exit 1
+        else
+            echo "Starting killarchive..."
+            screen -dmS killarchive sh -c "$RELEASE >> $LOG 2>&1"
+        fi
+        ;;
+    stop)
+        echo "Exiting killarchive..."
+        pid=$(pgrep -x "killarchive")
+        if [ -n "$pid" ]; then
+            send exit
+        else
+            echo "killarchive is not running"
+            exit 1
+        fi
+        ;;
+    build)
+        (
+            cd "$SRC" || {
+                echo "Failed to change directory to $SRC"
+                exit 1
+            }
+            cargo build --release
+        )
+        ;;
+    log)
+        pid=$(pgrep -x "killarchive")
+        if [ -z "$pid" ]; then
+            echo "killarchive is not running currently"
+        fi
+        tail -F "$LOG"
+        ;;
+    send)
+        pid=$(pgrep -x "killarchive")
+        if [ -n "$pid" ]; then
+            send "${@:2}"
+        else
+            echo "killarchive is not running currently"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {self-setup|self-remove|start|stop|build|log|send}"
+        exit 1
+        ;;
+esac
+
+echo "Done"
