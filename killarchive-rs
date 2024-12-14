@@ -21,6 +21,13 @@ LOG="/var/log/killarchive/killarchive.log"
 
 case "$1" in
     "self-setup")
+        if command -v complete 2>&1 >/dev/null; then
+            echo "Installing bash completion..."
+            check_root
+            cp "$(dirname "$0")killarchive-rs-completion.bash" /etc/bash_completion.d
+        else
+            echo "Bash completion is not available!"
+        fi
         echo "Installing myself to /usr/local/bin..."
         if [ "$(realpath "$0")" = "$TARGET" ]; then
             echo "The script is already in $TARGET."
