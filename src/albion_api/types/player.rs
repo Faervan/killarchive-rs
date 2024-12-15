@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::{alliance::Alliance, guild::Guild, parse_helper::QuickParse, Event, EventType};
 
@@ -7,6 +7,16 @@ pub struct Player {
     pub name: String,
     pub id: String,
     pub guild: Option<Guild>,
+}
+
+#[derive(Serialize)]
+pub struct PlayerData {
+    pub id: String,
+    pub name: String,
+    pub kills: i32,
+    pub deaths: i32,
+    pub assists: i32,
+    pub allies: i32,
 }
 
 impl Event {

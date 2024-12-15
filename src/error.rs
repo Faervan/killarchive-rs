@@ -5,6 +5,7 @@ pub enum Error {
     PsqlError(tokio_postgres::Error),
     IoError(std::io::Error),
     MpscRecvError,
+    TeraError(tera::Error),
 }
 
 impl From<reqwest::Error> for Error {
@@ -22,5 +23,11 @@ impl From<tokio_postgres::Error> for Error {
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
         Self::IoError(error)
+    }
+}
+
+impl From<tera::Error> for Error {
+    fn from(error: tera::Error) -> Self {
+        Self::TeraError(error)
     }
 }

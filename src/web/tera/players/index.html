@@ -1,0 +1,27 @@
+<html>
+    <body>
+        <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+        <table>
+            <tr>
+                <th>Player</th>
+                <th>Guild</th>
+                <th>Kills</th>
+                <th>Deaths</th>
+                <th>Assists</th>
+                <th>Allied assists</th>
+            </tr>
+            {% include "players/rows.html" %}
+        </table>
+        <button
+            value="20"
+            hx-get="/players?offset=20"
+            hx-target="tbody"
+            hx-swap="beforeend"
+            hx-trigger="click"
+            hx-on:click="
+                this.value = parseInt(this.value) + 20;
+                this.setAttribute('hx-get', '/players?offset=' + this.value);
+                htmx.process(this)"
+        >Load more</button>
+    </body>
+</html>

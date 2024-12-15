@@ -1,0 +1,10 @@
+{% for player in players %}
+    <tr>
+        <td>{{ player.id }}</td>
+        <td>{{ player.name }}</td>
+        <td>{{ player.kills }}</td>
+        <td>{{ player.deaths }}</td>
+        <td>{{ player.assists }}</td>
+        <td>{{ player.allies }}</td>
+    </tr>
+{% endfor %}

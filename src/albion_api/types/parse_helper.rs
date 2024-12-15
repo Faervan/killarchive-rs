@@ -15,12 +15,12 @@ impl<'de> QuickParse<'de> for Map<String, Value> {
                     Self: Sized,
                     D: Deserializer<'de> {
         self.remove(key)
-            .map(|v| v.to_string())
+            .map(|v| v.to_string().trim_matches('\"').to_string())
             .ok_or_else(|| Error::missing_field(key))
     }
     fn key(&mut self, key: &'static str) -> String {
         self.remove(key)
-            .map(|v| v.to_string())
+            .map(|v| v.to_string().trim_matches('\"').to_string())
             .unwrap_or(String::new())
     }
 }
