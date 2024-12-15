@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use albion_api::fetcher::fetch_events;
+use albion_api::fetcher::schedule;
 use env_logger::Env;
 use error::Error;
 use schema::{schema_create, schema_drop};
@@ -48,7 +48,7 @@ async fn main() -> Result<(), Error> {
     }
 
     if env::args().len() <= 1 {
-        fetch_events(&client).await?;
+        tokio::spawn(schedule(client));
     }
 
     rx.recv().await.unwrap_or(Err(Error::MpscRecvError))

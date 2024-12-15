@@ -3,7 +3,7 @@ use std::sync::Arc;
 use actix_web::{get, http::header::ContentType, middleware::Logger, web::Data, App, HttpResponse, HttpServer};
 use players::players_index;
 use serde::Deserialize;
-use tera::Tera;
+use tera::{Context, Tera};
 use tokio_postgres::Client;
 
 use crate::error::Error;
@@ -18,6 +18,7 @@ pub async fn launch_web(client: Arc<Client>) -> Result<(), Error> {
             .app_data(Data::new(client.clone()))
             .app_data(Data::new(tera.clone()))
             .service(root)
+            .service(favicon)
             .service(players_index)
     })
     .bind(("127.0.0.1", 9000)).unwrap()
@@ -27,20 +28,26 @@ pub async fn launch_web(client: Arc<Client>) -> Result<(), Error> {
 }
 
 #[get("/")]
-async fn root() -> HttpResponse {
-    let response = format!("<h1>killarchive-rs</h1><ul>{}</ul>",
-        ["Players"]
+async fn root(client: Data<Arc<Client>>, tera: Data<Tera>) -> Result<HttpResponse, Error> {
+    let last_hour_event_count = client
+        .query("SELECT COUNT(*) FROM cached_events WHERE timestamp > NOW() - INTERVAL '1 hour'", &[])
+        .await?
         .into_iter()
-        .map(|item|
-            format!("<li><a href=\"{}\">{item}</a></li>",
-                item.to_lowercase()
-            )
-        ).collect::<Vec<String>>()
-        .concat()
-    );
-    HttpResponse::Ok()
+        .map(|row| row.get(0))
+        .collect::<Vec<i64>>();
+
+    let mut context = Context::new();
+    context.insert("event_count", &last_hour_event_count[0]);
+
+    Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
-        .body(response)
+        .body(tera.render("root.html", &context)?))
+}
+
+#[get("/favicon.ico")]
+async fn favicon() -> HttpResponse {
+    HttpResponse::Ok()
+        .body(&include_bytes!("../../static/favicon.ico")[..])
 }
 
 #[derive(Deserialize)]

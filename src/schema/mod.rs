@@ -4,6 +4,13 @@ pub async fn schema_create(client: &Client) -> Result<(), Error> {
     println!("\nApplying the schema...\n");
 
     client.batch_execute("
+        CREATE TABLE IF NOT EXISTS cached_events (
+            id          integer NOT NULL primary key,
+            timestamp   timestamp NOT NULL DEFAULT NOW()
+        )
+    ").await?;
+
+    client.batch_execute("
         CREATE TABLE IF NOT EXISTS alliances (
             id          varchar(25) NOT NULL primary key,
             name        varchar(30) NOT NULL,

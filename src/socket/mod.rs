@@ -66,7 +66,7 @@ async fn client_handler(mut socket: UnixStream, client: Arc<Client>, sx: mpsc::S
                 println!("Request for help was denied");
             }
             "fetch" => {
-                fetch_events(&client).await?;
+                fetch_events(client.clone()).await?;
             }
             "create" => schema_create(&client).await.unwrap_or_else(
                 |err| println!("Failed to apply schema: {err:?}")

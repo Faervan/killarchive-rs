@@ -11,8 +11,8 @@ pub struct Player {
 
 #[derive(Serialize)]
 pub struct PlayerData {
-    pub id: String,
     pub name: String,
+    pub guild: String,
     pub kills: i32,
     pub deaths: i32,
     pub assists: i32,
