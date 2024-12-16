@@ -53,4 +53,21 @@ async fn favicon() -> HttpResponse {
 #[derive(Deserialize)]
 struct Params {
     offset: Option<i32>,
+    order_by: Option<String>
+}
+
+impl Params {
+    fn get_order(&self) -> String {
+        match self.order_by.as_ref().unwrap_or(&"".to_string()).as_str() {
+            "kills" | "deaths" | "assists" | "allies" => self.order_by.as_ref().unwrap().clone(),
+            _ => "kills".to_string()
+        }
+    }
+    fn get_secundary_order(&self) -> &'static str {
+        match self.order_by.as_ref().unwrap_or(&"kills".to_string()).as_str() {
+            "deaths" => "kills",
+            "assists" => "allies",
+            _ => "assists"
+        }
+    }
 }

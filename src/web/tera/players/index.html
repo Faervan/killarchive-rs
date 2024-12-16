@@ -2,27 +2,56 @@
     <body>
         <script src="https://unpkg.com/htmx.org@2.0.3"></script>
         <p>{{ player_count }} players in the database</p>
+        <select
+            id="order"
+            hx-get="/players?order_by=kills"
+            hx-trigger="customEvent"
+            hx-target="tbody"
+            hx-swap="innerHTML"
+            onchange="
+                this.setAttribute('hx-get', '/players?order_by=' + this.value);
+                htmx.process(this);
+                update_btn();
+                htmx.trigger(this, 'customEvent')
+            ">
+            <option value="kills">Kills</option>
+            <option value="deaths">Deaths</option>
+            <option value="assists">Assists</option>
+            <option value="allies">Allied assists</option>
+        </select>
         <table>
-            <tr>
-                <th>Player</th>
-                <th>Guild</th>
-                <th>Kills</th>
-                <th>Deaths</th>
-                <th>Assists</th>
-                <th>Allied assists</th>
-            </tr>
-            {% include "players/rows.html" %}
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Guild</th>
+                    <th>Kills</th>
+                    <th>Deaths</th>
+                    <th>Assists</th>
+                    <th>Allied assists</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% include "players/rows.html" %}
+            </tbody>
         </table>
         <button
             value="20"
+            id="btn"
             hx-get="/players?offset=20"
             hx-target="tbody"
             hx-swap="beforeend"
             hx-trigger="click"
             hx-on:click="
                 this.value = parseInt(this.value) + 20;
-                this.setAttribute('hx-get', '/players?offset=' + this.value);
-                htmx.process(this)"
+                update_btn()"
         >Load more</button>
+        <script>
+            var order = document.getElementById('order');
+            var btn = document.getElementById('btn');
+            function update_btn() {
+                btn.setAttribute('hx-get', '/players?offset=' + btn.value + '&order_by=' + order.value);
+                htmx.process(btn);
+            }
+        </script>
     </body>
 </html>

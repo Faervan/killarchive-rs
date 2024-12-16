@@ -9,7 +9,7 @@ use super::Params;
 
 #[get("/players")]
 async fn players_index(client: Data<Arc<Client>>, tera: Data<Tera>, params: Query<Params>) -> Result<HttpResponse, Error> {
-    let query = "
+    let query = format!("
         SELECT
             players.name,
             guilds.name,
@@ -19,11 +19,14 @@ async fn players_index(client: Data<Arc<Client>>, tera: Data<Tera>, params: Quer
             players.allies
         FROM players
         JOIN guilds ON players.guild = guilds.id
-        ORDER BY kills DESC, assists DESC
-        LIMIT 20 OFFSET
-    ";
+        ORDER BY {} DESC, {} DESC
+        LIMIT 20 OFFSET {}
+    ", params.get_order(),
+        params.get_secundary_order(),
+        params.offset.unwrap_or(0)
+    );
     let rows: Vec<PlayerData> = client
-        .query(&format!("{query} {}", params.offset.unwrap_or(0)), &[])
+        .query(&query, &[])
         .await?
         .into_iter()
         .map(|row| PlayerData {
@@ -50,8 +53,11 @@ async fn players_index(client: Data<Arc<Client>>, tera: Data<Tera>, params: Quer
 
     Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
-        .body(tera.render(match params.offset {
-            Some(_) => "players/rows.html",
-            None => "players/index.html"
-        }, &context)?))
+        .body(tera.render(
+            match params.offset.is_some() || params.order_by.is_some() {
+                true => "players/rows.html",
+                false => "players/index.html"
+            },
+            &context
+        )?))
 }
