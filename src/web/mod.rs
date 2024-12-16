@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use actix_web::{get, http::header::ContentType, middleware::Logger, web::Data, App, HttpResponse, HttpServer};
-use players::players_index;
+use players::{player_show, players_index};
 use serde::Deserialize;
 use tera::{Context, Tera};
 use tokio_postgres::Client;
@@ -19,6 +19,7 @@ pub async fn launch_web(client: Arc<Client>) -> Result<(), Error> {
             .app_data(Data::new(tera.clone()))
             .service(root)
             .service(favicon)
+            .service(player_show)
             .service(players_index)
     })
     .bind(("127.0.0.1", 9000)).unwrap()
