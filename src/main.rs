@@ -33,8 +33,6 @@ async fn main() -> Result<(), Error> {
 
     tokio::spawn(socket_handler(client.clone(), sx));
 
-    tokio::spawn(launch_web(client.clone()));
-
     for arg in env::args() {
         match arg.as_str() {
             "create" => schema_create(&client).await.unwrap_or_else(
@@ -48,8 +46,11 @@ async fn main() -> Result<(), Error> {
     }
 
     if env::args().len() <= 1 {
+        tokio::spawn(launch_web(client.clone()));
         tokio::spawn(schedule(client));
+        rx.recv().await.unwrap_or(Err(Error::MpscRecvError))
+    } else {
+        Ok(())
     }
 
-    rx.recv().await.unwrap_or(Err(Error::MpscRecvError))
 }

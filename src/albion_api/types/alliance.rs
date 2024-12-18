@@ -1,6 +1,6 @@
-use super::{player::Player, Event, EventFame, EventType};
+use super::{player::Player, Event, EventFame};
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Hash, PartialEq, Eq, Debug)]
 pub struct Alliance {
     pub name: String,
     pub id: String,
@@ -17,44 +17,11 @@ impl Player {
 impl Event {
     pub fn alliances(&self) -> Vec<(&Alliance, EventFame)> {
         let mut alliances = vec![];
-        self.killer.alliance()
-            .map(|a| alliances.push(
-                (a, EventFame {
-                    value: self.killer.kill_fame,
-                    ty: EventType::Kill,
-                })
-            ));
-        self.victim.alliance()
-            .map(|a| alliances.push(
-                (a, EventFame {
-                    value: self.total_fame,
-                    ty: EventType::Death,
-                })
-            ));
-        self.assists
-            .iter()
-            .filter(|a| a.id == self.killer.id)
-            .for_each(|assist| {
-                assist.alliance()
-                    .map(|a| alliances.push(
-                        (a, EventFame {
-                            value: 0,
-                            ty: EventType::Assist,
-                        })
-                    ));
-            });
-        self.allies
-            .iter()
-            .filter(|a| a.id == self.killer.id)
-            .for_each(|ally| {
-                ally.alliance()
-                    .map(|a| alliances.push(
-                        (a, EventFame {
-                            value: ally.kill_fame,
-                            ty: EventType::Ally,
-                        })
-                    ));
-            });
+        for (player, fame) in self.players() {
+            player.alliance().map(|a|
+                alliances.push((a, fame))
+            );
+        }
         alliances
     }
 }

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{alliance::Alliance, guild::Guild, parse_helper::QuickParse, Event, EventFame, EventType};
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Hash, PartialEq, Eq, Debug)]
 pub struct Player {
     pub name: String,
     pub id: String,

@@ -15,7 +15,12 @@ mod players;
 pub async fn schedule(client: Arc<Client>) -> Result<(), Error> {
     println!("\nStarting to schedule event fetching...\n");
     loop {
-        tokio::spawn(fetch_events(client.clone()));
+        let c = client.clone();
+        tokio::spawn(async move {
+            let _ = fetch_events(c).await.map_err(|e|
+                println!("Encountered error: {e}")
+            );
+        });
         sleep(Duration::from_secs(30)).await;
     }
 }
@@ -30,12 +35,12 @@ pub async fn fetch_events(client: Arc<Client>) -> Result<(), Error> {
 
     match validate_events(&client, &events).await {
         Ok(()) => {
-            println!("alliances");
-            handle_alliances(&client, &events).await?;
-            println!("guilds");
-            handle_guilds(&client, &events).await?;
-            println!("players");
-            handle_players(&client, &events).await?;
+            println!("handling alliances...");
+            handle_alliances(&client, &events).await.unwrap();
+            println!("handling guilds...");
+            handle_guilds(&client, &events).await.unwrap();
+            println!("handling players...");
+            handle_players(&client, &events).await.unwrap();
 
             for event in &events {
                 println!("{} killed {}", event.killer.name, event.victim.name);

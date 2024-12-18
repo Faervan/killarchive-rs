@@ -19,7 +19,7 @@ pub async fn handle_guilds(client: &Client, events: &Vec<Event>) -> Result<(), E
             death_fame,
             fame_ratio
         ) VALUES ($1, $11, $2, $3, $4, $5, $6, $7, $8, $9, $10)")
-        .await.unwrap();
+        .await?;
     let update = client
         .prepare("UPDATE guilds
             SET
@@ -34,21 +34,21 @@ pub async fn handle_guilds(client: &Client, events: &Vec<Event>) -> Result<(), E
                 fame_ratio = $10
             WHERE id = $1
         ")
-        .await.unwrap();
+        .await?;
 
     let guilds = events
         .into_iter()
         .fold(HashMap::new(), |mut acc: HashMap<&Guild, EventCount>, event| {
-        event.guilds()
-            .into_iter()
-            .for_each(|(guild, ty)|
-                if let Some(previous) = acc.insert(guild, ty.into()) {
-                    acc.get_mut(guild)
-                        .map(|new| *new += previous);
-                }
-            );
-        acc
-    });
+            event.guilds()
+                .into_iter()
+                .for_each(|(guild, ty)|
+                    if let Some(previous) = acc.insert(guild, ty.into()) {
+                        acc.get_mut(guild)
+                            .map(|new| *new += previous);
+                    }
+                );
+            acc
+        });
 
     for (guild, events) in &guilds {
         let data: &[&(dyn ToSql + Sync)] = &[
@@ -64,8 +64,7 @@ pub async fn handle_guilds(client: &Client, events: &Vec<Event>) -> Result<(), E
             &(((events.kill_fame as f32 / (events.kill_fame + events.death_fame) as f32) * 100.).round() as i16),
             &guild.name,
         ];
-        if let Err(e) = client.execute(&insert, data).await {
-            println!("{e}\nguild: {}\nalliance: {:?}", guild.name, guild.alliance.as_ref().map(|a| a.name.clone()));
+        if let Err(_) = client.execute(&insert, data).await {
             client.execute(&update, data).await?;
         }
     }

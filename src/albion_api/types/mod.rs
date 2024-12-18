@@ -8,7 +8,7 @@ pub mod alliance;
 pub mod guild;
 pub mod player;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Event {
     #[serde(rename = "EventId")]
     pub id: usize,

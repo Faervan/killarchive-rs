@@ -1,6 +1,6 @@
 use super::{alliance::Alliance, Event, EventFame, EventType};
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Hash, PartialEq, Eq, Debug)]
 pub struct Guild {
     pub name: String,
     pub id: String,

@@ -32,7 +32,7 @@ pub async fn handle_alliances(client: &Client, events: &Vec<Event>) -> Result<()
                 fame_ratio = $9
             WHERE id = $1
         ")
-        .await.unwrap();
+        .await?;
 
     let alliances = events
         .into_iter()
