@@ -3,50 +3,68 @@ use tokio_postgres::{Client, Error};
 pub async fn schema_create(client: &Client) -> Result<(), Error> {
     println!("\nApplying the schema...\n");
 
+    let meta = "
+        id                  varchar(25) NOT NULL primary key,
+        name                varchar(30) NOT NULL,
+    ";
+
+    let count = "
+        kills               integer NOT NULL,
+        deaths              integer NOT NULL,
+        assists             integer NOT NULL,
+        allies              integer NOT NULL,
+        winrate             smallint,
+    ";
+
+    let fame = "
+        kill_fame           bigint NOT NULL,
+        death_fame          bigint NOT NULL,
+        fame_ratio          smallint,
+    ";
+
+    let time = "
+        registered_since    timestamp NOT NULL DEFAULT NOW(),
+        updated_at          timestamp NOT NULL DEFAULT NOW()
+    ";
+
     client.batch_execute("
         CREATE TABLE IF NOT EXISTS cached_events (
-            id          integer NOT NULL primary key,
-            timestamp   timestamp NOT NULL DEFAULT NOW()
+            id                  integer NOT NULL primary key,
+            timestamp           timestamp NOT NULL DEFAULT NOW()
         )
     ").await?;
 
-    client.batch_execute("
+    client.batch_execute(&format!("
         CREATE TABLE IF NOT EXISTS alliances (
-            id          varchar(25) NOT NULL primary key,
-            name        varchar(30) NOT NULL,
-            kills       integer NOT NULL,
-            deaths      integer NOT NULL,
-            assists     integer NOT NULL,
-            allies      integer NOT NULL
+            {meta}
+            {count}
+            {fame}
+            {time}
         );
         CREATE INDEX ix_alliance_name ON alliances (name)
-    ").await?;
+    ")).await?;
 
-    client.batch_execute("
+    client.batch_execute(&format!("
         CREATE TABLE IF NOT EXISTS guilds (
-            id          varchar(25) NOT NULL primary key,
-            name        varchar(30) NOT NULL,
-            alliance    varchar(25) references alliances(id),
-            kills       integer NOT NULL,
-            deaths      integer NOT NULL,
-            assists     integer NOT NULL,
-            allies      integer NOT NULL
+            {meta}
+            alliance            varchar(25) references alliances(id),
+            {count}
+            {fame}
+            {time}
         );
         CREATE INDEX ix_guild_name ON guilds (name)
-    ").await?;
+    ")).await?;
 
-    client.batch_execute("
+    client.batch_execute(&format!("
         CREATE TABLE IF NOT EXISTS players (
-            id          varchar(25) NOT NULL primary key,
-            name        varchar(30) NOT NULL,
-            guild       varchar(25) references guilds(id),
-            kills       integer NOT NULL,
-            deaths      integer NOT NULL,
-            assists     integer NOT NULL,
-            allies      integer NOT NULL
+            {meta}
+            guild               varchar(25) references guilds(id),
+            {count}
+            {fame}
+            {time}
         );
         CREATE INDEX ix_player_name ON players (name)
-    ").await?;
+    ")).await?;
 
     Ok(())
 }
@@ -57,6 +75,7 @@ pub async fn schema_drop(client: &Client) -> Result<(), Error> {
     client.batch_execute("DROP TABLE alliances CASCADE").await?;
     client.batch_execute("DROP TABLE guilds CASCADE").await?;
     client.batch_execute("DROP TABLE players").await?;
+    client.batch_execute("DROP TABLE cached_events").await?;
 
     Ok(())
 }

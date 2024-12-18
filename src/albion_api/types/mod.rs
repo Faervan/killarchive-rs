@@ -20,6 +20,8 @@ pub struct Event {
     pub assists: Vec<Player>,
     #[serde(rename = "GroupMembers")]
     pub allies: Vec<Player>,
+    #[serde(rename = "TotalVictimKillFame")]
+    pub total_fame: i64,
 }
 
 pub enum EventType {
@@ -29,23 +31,32 @@ pub enum EventType {
     Ally,
 }
 
+pub struct EventFame {
+    value: i64,
+    ty: EventType,
+}
+
 #[derive(Default)]
 pub struct EventCount {
     pub kills: i32,
     pub deaths: i32,
     pub assists: i32,
     pub allies: i32,
+    pub kill_fame: i64,
+    pub death_fame: i64,
 }
 
-impl From<EventType> for EventCount {
-    fn from(value: EventType) -> Self {
-        match value {
+impl From<EventFame> for EventCount {
+    fn from(fame: EventFame) -> Self {
+        match fame.ty {
             EventType::Kill => EventCount {
                 kills: 1,
+                kill_fame: fame.value,
                 ..Default::default()
             },
             EventType::Death => EventCount {
                 deaths: 1,
+                death_fame: fame.value,
                 ..Default::default()
             },
             EventType::Assist => EventCount {
@@ -54,6 +65,7 @@ impl From<EventType> for EventCount {
             },
             EventType::Ally => EventCount {
                 allies: 1,
+                kill_fame: fame.value,
                 ..Default::default()
             },
         }
@@ -66,5 +78,7 @@ impl AddAssign for EventCount {
             self.deaths += rhs.deaths;
             self.assists += rhs.assists;
             self.allies += rhs.allies;
+            self.kill_fame += rhs.kill_fame;
+            self.death_fame += rhs.death_fame;
     }
 }

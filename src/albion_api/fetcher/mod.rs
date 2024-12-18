@@ -30,8 +30,11 @@ pub async fn fetch_events(client: Arc<Client>) -> Result<(), Error> {
 
     match validate_events(&client, &events).await {
         Ok(()) => {
+            println!("alliances");
             handle_alliances(&client, &events).await?;
+            println!("guilds");
             handle_guilds(&client, &events).await?;
+            println!("players");
             handle_players(&client, &events).await?;
 
             for event in &events {

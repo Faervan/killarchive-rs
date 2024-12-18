@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use tokio_postgres::Client;
+use tokio_postgres::{types::ToSql, Client};
 
 use crate::{albion_api::types::{guild::Guild, Event, EventCount}, error::Error};
 
@@ -13,19 +13,28 @@ pub async fn handle_guilds(client: &Client, events: &Vec<Event>) -> Result<(), E
             kills,
             deaths,
             assists,
-            allies
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)")
-        .await?;
+            allies,
+            winrate,
+            kill_fame,
+            death_fame,
+            fame_ratio
+        ) VALUES ($1, $11, $2, $3, $4, $5, $6, $7, $8, $9, $10)")
+        .await.unwrap();
     let update = client
         .prepare("UPDATE guilds
             SET
-                kills = kills + $2,
-                deaths = deaths + $3,
-                assists = assists + $4,
-                allies = allies + $5
+                alliance = $2,
+                kills = kills + $3,
+                deaths = deaths + $4,
+                assists = assists + $5,
+                allies = allies + $6,
+                winrate = $7,
+                kill_fame = kill_fame + $8,
+                death_fame = death_fame + $9,
+                fame_ratio = $10
             WHERE id = $1
         ")
-        .await?;
+        .await.unwrap();
 
     let guilds = events
         .into_iter()
@@ -42,22 +51,22 @@ pub async fn handle_guilds(client: &Client, events: &Vec<Event>) -> Result<(), E
     });
 
     for (guild, events) in &guilds {
-        if let Err(_) = client.execute(&insert, &[
+        let data: &[&(dyn ToSql + Sync)] = &[
             &guild.id,
-            &guild.name,
             &guild.alliance.as_ref().map(|a| &a.id),
             &events.kills,
             &events.deaths,
             &events.assists,
             &events.allies,
-        ]).await {
-            client.execute(&update, &[
-                &guild.id,
-                &events.kills,
-                &events.deaths,
-                &events.assists,
-                &events.allies
-            ]).await?;
+            &(((events.kills as f32 / (events.kills + events.deaths) as f32) * 100.).round() as i16),
+            &events.kill_fame,
+            &events.death_fame,
+            &(((events.kill_fame as f32 / (events.kill_fame + events.death_fame) as f32) * 100.).round() as i16),
+            &guild.name,
+        ];
+        if let Err(e) = client.execute(&insert, data).await {
+            println!("{e}\nguild: {}\nalliance: {:?}", guild.name, guild.alliance.as_ref().map(|a| a.name.clone()));
+            client.execute(&update, data).await?;
         }
     }
 
