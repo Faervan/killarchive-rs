@@ -36,19 +36,19 @@ pub async fn handle_alliances(client: &Client, events: &Vec<Event>) -> Result<()
 
     let alliances = events
         .into_iter()
-        .fold(HashMap::new(), |mut acc: HashMap<&Alliance, EventCount>, event| {
+        .fold(HashMap::new(), |mut acc: HashMap<&String, (&Alliance, EventCount)>, event| {
             event.alliances()
                 .into_iter()
                 .for_each(|(alliance, ty)|
-                    if let Some(previous) = acc.insert(alliance, ty.into()) {
-                        acc.get_mut(alliance)
-                            .map(|new| *new += previous);
+                    if let Some(previous) = acc.insert(&alliance.id, (alliance, ty.into())) {
+                        acc.get_mut(&alliance.id)
+                            .map(|(_, new)| *new += previous.1);
                     }
                 );
             acc
         });
 
-    for (alliance, events) in &alliances {
+    for (alliance, events) in alliances.values() {
         let data: &[&(dyn ToSql + Sync)] = &[
             &alliance.id,
             &events.kills,
@@ -59,9 +59,10 @@ pub async fn handle_alliances(client: &Client, events: &Vec<Event>) -> Result<()
             &events.kill_fame,
             &events.death_fame,
             &(((events.kill_fame as f32 / (events.kill_fame + events.death_fame) as f32) * 100.).round() as i16),
-            &alliance.name,
         ];
-        if let Err(_) = client.execute(&insert, data).await {
+        let mut named_data = data.to_vec().clone();
+        named_data.push(&alliance.name);
+        if let Err(_) = client.execute(&insert, &named_data).await {
             client.execute(&update, data).await?;
         }
     }

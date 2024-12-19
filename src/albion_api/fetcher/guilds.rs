@@ -38,19 +38,19 @@ pub async fn handle_guilds(client: &Client, events: &Vec<Event>) -> Result<(), E
 
     let guilds = events
         .into_iter()
-        .fold(HashMap::new(), |mut acc: HashMap<&Guild, EventCount>, event| {
+        .fold(HashMap::new(), |mut acc: HashMap<&String, (&Guild, EventCount)>, event| {
             event.guilds()
                 .into_iter()
                 .for_each(|(guild, ty)|
-                    if let Some(previous) = acc.insert(guild, ty.into()) {
-                        acc.get_mut(guild)
-                            .map(|new| *new += previous);
+                    if let Some(previous) = acc.insert(&guild.id, (guild, ty.into())) {
+                        acc.get_mut(&guild.id)
+                            .map(|(_, new)| *new += previous.1);
                     }
                 );
             acc
         });
 
-    for (guild, events) in &guilds {
+    for (guild, events) in guilds.values() {
         let data: &[&(dyn ToSql + Sync)] = &[
             &guild.id,
             &guild.alliance.as_ref().map(|a| &a.id),
@@ -62,9 +62,10 @@ pub async fn handle_guilds(client: &Client, events: &Vec<Event>) -> Result<(), E
             &events.kill_fame,
             &events.death_fame,
             &(((events.kill_fame as f32 / (events.kill_fame + events.death_fame) as f32) * 100.).round() as i16),
-            &guild.name,
         ];
-        if let Err(_) = client.execute(&insert, data).await {
+        let mut named_data = data.to_vec().clone();
+        named_data.push(&guild.name);
+        if let Err(_) = client.execute(&insert, &named_data).await {
             client.execute(&update, data).await?;
         }
     }

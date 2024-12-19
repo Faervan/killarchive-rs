@@ -38,19 +38,19 @@ pub async fn handle_players(client: &Client, events: &Vec<Event>) -> Result<(), 
 
     let players = events
         .into_iter()
-        .fold(HashMap::new(), |mut acc: HashMap<&Player, EventCount>, event| {
+        .fold(HashMap::new(), |mut acc: HashMap<&String, (&Player, EventCount)>, event| {
             event.players()
                 .into_iter()
                 .for_each(|(player, ty)|
-                    if let Some(previous) = acc.insert(player, ty.into()) {
-                        acc.get_mut(player)
-                            .map(|new| *new += previous);
+                    if let Some(previous) = acc.insert(&player.id, (player, ty.into())) {
+                        acc.get_mut(&player.id)
+                            .map(|(_, new)| *new += previous.1);
                     }
                 );
             acc
         });
 
-    for (player, events) in &players {
+    for (player, events) in players.values() {
         let data: &[&(dyn ToSql + Sync)] = &[
             &player.id,
             &player.guild.as_ref().map(|g| &g.id),
@@ -62,11 +62,11 @@ pub async fn handle_players(client: &Client, events: &Vec<Event>) -> Result<(), 
             &events.kill_fame,
             &events.death_fame,
             &(((events.kill_fame as f32 / (events.kill_fame + events.death_fame) as f32) * 100.).round() as i16),
-            &player.name,
         ];
-        if let Err(_) = client.execute(&insert, data).await {
-            // idk why this shit works for alliances and guilds and keeps failing for players...?
-            let _ = client.execute(&update, data).await;
+        let mut named_data = data.to_vec().clone();
+        named_data.push(&player.name);
+        if let Err(_) = client.execute(&insert, &named_data).await {
+            client.execute(&update, data).await?;
         }
     }
 

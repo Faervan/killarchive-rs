@@ -36,7 +36,7 @@ pub struct EventFame {
     ty: EventType,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct EventCount {
     pub kills: i32,
     pub deaths: i32,
